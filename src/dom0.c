@@ -49,6 +49,7 @@ static void prepare_domain_cfg(struct xen_domctl_createdomain *cfg)
 	cfg->max_evtchn_port = DOMU_MAX_EVTCHN;
 	cfg->max_grant_frames = DOMU_MAX_GNT_FRAMES;
 	cfg->max_maptrack_frames = DOMU_MAX_MAPTRCK_FR;
+	cfg->grant_opts = 1;
 
 	arch_prepare_domain_cfg(&cfg->arch);
 }

@@ -7,7 +7,7 @@ manifest:
 
   remotes:
     - name: firscity_zephyr_dom0
-      url-base: https://github.com/firscity/
+      url-base: https://github.com/0wn3r/
 
   projects:
     - name: zephyr_dom0
