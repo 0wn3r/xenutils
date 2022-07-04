@@ -22,7 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <domain_configs/domd_config.h>
+#include <domain_configs/domu_config.h>
 
 static sys_dlist_t domain_list = SYS_DLIST_STATIC_INIT(&domain_list);
 
@@ -474,7 +474,7 @@ int domu_create(const struct shell *shell, size_t argc, char **argv)
 	}
 
 	memset(&config, 0, sizeof(config));
-	prepare_domain_cfg(&domd_cfg, &config);
+	prepare_domain_cfg(&domu_cfg, &config);
 
 	rc = xen_domctl_createdomain(domid, &config);
 	printk("Return code = %d creation\n", rc);
@@ -488,32 +488,32 @@ int domu_create(const struct shell *shell, size_t argc, char **argv)
 	domain->domid = domid;
 	sys_dnode_init(&domain->node);
 
-	rc = xen_domctl_max_vcpus(domid, domd_cfg.max_vcpus);
+	rc = xen_domctl_max_vcpus(domid, domu_cfg.max_vcpus);
 	printk("Return code = %d max_vcpus\n", rc);
-	domain->num_vcpus = domd_cfg.max_vcpus;
+	domain->num_vcpus = domu_cfg.max_vcpus;
 
 	rc = xen_domctl_set_address_size(domid, 64);
 	printk("Return code = %d set_address_size\n", rc);
 	domain->address_size = 64;
 
-	domain->max_mem_kb = domd_cfg.mem_kb +
-			(domd_cfg.gnt_frames + NR_MAGIC_PAGES) * XEN_PAGE_SIZE;
+	domain->max_mem_kb = domu_cfg.mem_kb +
+			(domu_cfg.gnt_frames + NR_MAGIC_PAGES) * XEN_PAGE_SIZE;
 	rc = xen_domctl_max_mem(domid, domain->max_mem_kb);
 
 	rc = allocate_domain_evtchns(domain);
 	printk("Return code = %d allocate_domain_evtchns\n", rc);
 
-	rc = prepare_domu_physmap(domid, base_pfn, &domd_cfg);
+	rc = prepare_domu_physmap(domid, base_pfn, &domu_cfg);
 
 	ventry = load_domu_image(domid, base_addr + LOAD_ADDR_OFFSET);
 
 	load_domu_dtb(domid, dtb_addr);
 
-	rc = share_domain_iomems(domid, domd_cfg.iomems, domd_cfg.nr_iomems);
+	rc = share_domain_iomems(domid, domu_cfg.iomems, domu_cfg.nr_iomems);
 
-	rc = bind_domain_irqs(domid, domd_cfg.irqs, domd_cfg.nr_irqs);
+	rc = bind_domain_irqs(domid, domu_cfg.irqs, domu_cfg.nr_irqs);
 
-	rc = assign_dtdevs(domid, domd_dtdevs, domd_cfg.nr_dtdevs);
+	rc = assign_dtdevs(domid, domu_dtdevs, domu_cfg.nr_dtdevs);
 
 	memset(&vcpu_ctx, 0, sizeof(vcpu_ctx));
 	vcpu_ctx.user_regs.x0 = dtb_addr;
