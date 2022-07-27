@@ -183,21 +183,21 @@ static int prepare_domu_physmap(int domid, uint64_t base_pfn,
 	return 0;
 }
 
-extern char __uboot_domu_start[];
-extern char __uboot_domu_end[];
+extern char __kernel_domu_start[];
+extern char __kernel_domu_end[];
 uint64_t load_domu_image(int domid, uint64_t base_addr)
 {
 	int i, rc;
 	void *mapped_domu;
 	uint64_t mapped_base_pfn;
-	uint64_t domu_size = __uboot_domu_end - __uboot_domu_start;
+	uint64_t domu_size = __kernel_domu_end - __kernel_domu_start;
 	uint64_t nr_pages = ceiling_fraction(domu_size, XEN_PAGE_SIZE);
 	xen_pfn_t mapped_pfns[nr_pages];
 	xen_pfn_t indexes[nr_pages];
 	int err_codes[nr_pages];
 	struct xen_domctl_cacheflush cacheflush;
 
-	struct zimage64_hdr *zhdr = (struct zimage64_hdr *) __uboot_domu_start;
+	struct zimage64_hdr *zhdr = (struct zimage64_hdr *) __kernel_domu_start;
 	uint64_t base_pfn = XEN_PHYS_PFN(base_addr);
 	printk("Zimage header details: text_offset = %llx, base_addr = %llx\n", zhdr->text_offset, base_addr);
 
@@ -214,10 +214,10 @@ uint64_t load_domu_image(int domid, uint64_t base_addr)
 	printk("Return code for XENMEM_add_to_physmap_batch = %d\n", rc);
 	printk("mapped_domu = %p\n", mapped_domu);
 	printk("Zephyr DomU start addr = %p, end addr = %p, binary size = 0x%llx\n",
-		__uboot_domu_start, __uboot_domu_end, domu_size);
+		__kernel_domu_start, __kernel_domu_end, domu_size);
 
 	/* Copy binary to domain pages and clear cache */
-	memcpy(mapped_domu, __uboot_domu_start, domu_size);
+	memcpy(mapped_domu, __kernel_domu_start, domu_size);
 
 	cacheflush.start_pfn = mapped_base_pfn;
 	cacheflush.nr_pfns = nr_pages;
