@@ -1,12 +1,12 @@
-#include <xen/generic.h>
-#include <xen/public/io/console.h>
-#include <xen/public/memory.h>
-#include <xen/public/xen.h>
+#include <zephyr/xen/generic.h>
+#include <zephyr/xen/public/io/console.h>
+#include <zephyr/xen/public/memory.h>
+#include <zephyr/xen/public/xen.h>
 
 #include <domain.h>
 
-#include <init.h>
-#include <kernel.h>
+#include <zephyr/init.h>
+#include <zephyr/kernel.h>
 #include <string.h>
 
 static bool console_thrd_stop = false;
@@ -78,11 +78,9 @@ int start_domain_console(struct xen_domain *domain)
 		return -EBUSY;
 	}
 
-	local_console_chn = evtchn_bind_interdomain(domain->domid, domain->console_evtchn);
-
 	k_sem_init(&sem, 0, 1);
 
-	bind_event_channel(local_console_chn, evtchn_callback, NULL);
+	local_console_chn = bind_interdomain_event_channel(domain->domid, domain->console_evtchn, evtchn_callback, NULL);
 
 	console_thrd_stop = false;
 	read_tid = k_thread_create(&read_thrd, read_thrd_stack,
