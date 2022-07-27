@@ -7,12 +7,12 @@ manifest:
 
   remotes:
     - name: firscity_zephyr_dom0
-      url-base: https://github.com/firscity/
+      url-base: https://github.com/0wn3r/
 
   projects:
     - name: zephyr_dom0
       remote: firscity_zephyr_dom0
       repo-path: zephyr.git
-      revision: uboot-devel
+      revision: kernel_devel_rebase2
       west-commands: scripts/west-commands.yml
 
