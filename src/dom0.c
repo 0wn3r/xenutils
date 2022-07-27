@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <xen/dom0/domctl.h>
-#include <xen/dom0/zimage.h>
-#include <xen/generic.h>
-#include <xen/hvm.h>
-#include <xen/memory.h>
-#include <xen/public/hvm/hvm_op.h>
-#include <xen/public/hvm/params.h>
-#include <xen/public/domctl.h>
-#include <xen/public/xen.h>
+#include <zephyr/xen/dom0/domctl.h>
+#include <zephyr/xen/dom0/zimage.h>
+#include <zephyr/xen/generic.h>
+#include <zephyr/xen/hvm.h>
+#include <zephyr/xen/memory.h>
+#include <zephyr/xen/public/hvm/hvm_op.h>
+#include <zephyr/xen/public/hvm/params.h>
+#include <zephyr/xen/public/domctl.h>
+#include <zephyr/xen/public/xen.h>
 
 #include <domain.h>
 
@@ -64,7 +64,7 @@ static int allocate_domain_evtchns(struct xen_domain *domain)
 	int rc;
 
 	/* TODO: Alloc all required evtchns */
-	rc = evtchn_alloc_unbound(domain->domid, 0);
+	rc = alloc_unbound_event_channel(domain->domid, 0);
 	if (rc < 0) {
 		printk("failed to alloc evtchn for domain #%d console, rc = %d\n",
 			domain->domid, rc);
@@ -77,7 +77,7 @@ static int allocate_domain_evtchns(struct xen_domain *domain)
 		printk("Failed to set domain console evtchn param, rc= %d\n", rc);
 	}
 
-	rc = evtchn_alloc_unbound(domain->domid, 0);
+	rc = alloc_unbound_event_channel(domain->domid, 0);
 	if (rc < 0) {
 		printk("failed to alloc evtchn for domain #%d console, rc = %d\n",
 			domain->domid, rc);
@@ -97,7 +97,7 @@ static int allocate_magic_pages(int domid)
 {
 	int rc, i;
 	uint64_t nr_exts = NR_MAGIC_PAGES;
-	xen_pfn_t magic_base_pfn = PHYS_PFN(GUEST_MAGIC_BASE);
+	xen_pfn_t magic_base_pfn = XEN_PHYS_PFN(GUEST_MAGIC_BASE);
 	xen_pfn_t extents[nr_exts];
 	void *mapped_magic;
 	xen_pfn_t mapped_base_pfn, mapped_pfns[nr_exts];
@@ -112,7 +112,7 @@ static int allocate_magic_pages(int domid)
 
 	/* Need to clear memory content of magic pages */
 	mapped_magic = k_aligned_alloc(XEN_PAGE_SIZE, XEN_PAGE_SIZE * nr_exts);
-	mapped_base_pfn = PHYS_PFN((uint64_t) mapped_magic);
+	mapped_base_pfn = XEN_PHYS_PFN((uint64_t) mapped_magic);
 	for (i = 0; i < nr_exts; i++) {
 		mapped_pfns[i] = mapped_base_pfn + i;
 	}
@@ -198,11 +198,11 @@ uint64_t load_domu_image(int domid, uint64_t base_addr)
 	struct xen_domctl_cacheflush cacheflush;
 
 	struct zimage64_hdr *zhdr = (struct zimage64_hdr *) __uboot_domu_start;
-	uint64_t base_pfn = PHYS_PFN(base_addr);
+	uint64_t base_pfn = XEN_PHYS_PFN(base_addr);
 	printk("Zimage header details: text_offset = %llx, base_addr = %llx\n", zhdr->text_offset, base_addr);
 
 	mapped_domu = k_aligned_alloc(XEN_PAGE_SIZE, XEN_PAGE_SIZE * nr_pages);
-	mapped_base_pfn = PHYS_PFN((uint64_t) mapped_domu);
+	mapped_base_pfn = XEN_PHYS_PFN((uint64_t) mapped_domu);
 
 	for (i = 0; i < nr_pages; i++) {
 		mapped_pfns[i] = mapped_base_pfn + i;
@@ -248,7 +248,7 @@ void load_domu_dtb(int domid, uint64_t dtb_addr)
 {
 	int i, rc;
 	void *mapped_dtb;
-	uint64_t mapped_dtb_pfn, dtb_pfn = PHYS_PFN(dtb_addr);
+	uint64_t mapped_dtb_pfn, dtb_pfn = XEN_PHYS_PFN(dtb_addr);
 	uint64_t dtb_size = __domu_dtb_end - __domu_dtb_start;
 	uint64_t nr_pages = ceiling_fraction(dtb_size, XEN_PAGE_SIZE);
 	xen_pfn_t mapped_pfns[nr_pages];
@@ -257,7 +257,7 @@ void load_domu_dtb(int domid, uint64_t dtb_addr)
 	struct xen_domctl_cacheflush cacheflush;
 
 	mapped_dtb = k_aligned_alloc(XEN_PAGE_SIZE, XEN_PAGE_SIZE * nr_pages);
-	mapped_dtb_pfn = PHYS_PFN((uint64_t) mapped_dtb);
+	mapped_dtb_pfn = XEN_PHYS_PFN((uint64_t) mapped_dtb);
 
 	for (i = 0; i < nr_pages; i++) {
 		mapped_pfns[i] = mapped_dtb_pfn + i;
@@ -369,8 +369,8 @@ int map_domain_console_ring(struct xen_domain *domain)
 		return -ENOMEM;
 	}
 
-	ring_pfn = virt_to_pfn(mapped_ring);
-	idx = PHYS_PFN(GUEST_MAGIC_BASE) + CONSOLE_PFN_OFFSET;
+	ring_pfn = xen_virt_to_gfn(mapped_ring);
+	idx = XEN_PHYS_PFN(GUEST_MAGIC_BASE) + CONSOLE_PFN_OFFSET;
 
 	/* adding single page, but only xatpb can map with foreign domid */
 	rc = xendom_add_to_physmap_batch(DOMID_SELF, domain->domid, XENMAPSPACE_gmfn_foreign,
@@ -457,7 +457,7 @@ int domu_create(const struct shell *shell, size_t argc, char **argv)
 	struct vcpu_guest_context vcpu_ctx;
 	struct xen_domctl_scheduler_op sched_op;
 	uint64_t base_addr = GUEST_RAM0_BASE;
-	uint64_t base_pfn = PHYS_PFN(base_addr);
+	uint64_t base_pfn = XEN_PHYS_PFN(base_addr);
 	/* TODO: make it not hardcoded */
 	uint64_t dtb_addr = GUEST_RAM0_BASE;
 	uint64_t ventry;
@@ -589,7 +589,7 @@ int domu_destroy(const struct shell *shell, size_t argc, char **argv)
 
 	/* TODO: do this on console destroying */
 	stop_domain_console();
-	ring_pfn = virt_to_pfn(domain->intf);
+	ring_pfn = xen_virt_to_gfn(domain->intf);
 	rc = xendom_remove_from_physmap(DOMID_SELF, ring_pfn);
 	printk("Return code for xendom_remove_from_physmap = %d, (console ring)\n", rc);
 
