@@ -251,6 +251,8 @@ void load_domu_dtb(int domid, uint64_t dtb_addr)
 	void *mapped_dtb;
 	uint64_t mapped_dtb_pfn, dtb_pfn = XEN_PHYS_PFN(dtb_addr);
 	uint64_t dtb_size = __domu_dtb_end - __domu_dtb_start;
+	if (dtb_size == 0)
+		return;
 	uint64_t nr_pages = ceiling_fraction(dtb_size, XEN_PAGE_SIZE);
 	xen_pfn_t mapped_pfns[nr_pages];
 	xen_pfn_t indexes[nr_pages];
