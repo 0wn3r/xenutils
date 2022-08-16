@@ -6,4 +6,5 @@ project(xenutils)
 
 include_directories(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_sources_ifdef(CONFIG_XEN_INITIAL_DOMAIN app PRIVATE src/xen_cmds.c src/dom0.c src/console_util.c src/kernel_domu.S)
+target_sources_ifdef(CONFIG_GPIO_RCAR app PRIVATE src/gpio_led.c)
 

@@ -22,9 +22,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(dom0);
+
 #include <domain_configs/domu_config.h>
 
 static sys_dlist_t domain_list = SYS_DLIST_STATIC_INIT(&domain_list);
+
+#ifdef CONFIG_GPIO_RCAR
+extern void configure_led(void);
+extern void toggle_led(void);
+#else
+static void configure_led(void) {};
+static void toggle_led(void) {};
+#endif
 
 static void arch_prepare_domain_cfg(struct xen_domain_cfg *dom_cfg,
 		struct xen_arch_domainconfig *arch_cfg)
@@ -451,11 +462,10 @@ int domu_console_stop(const struct shell *shell, size_t argc, char **argv)
 }
 
 #define LOAD_ADDR_OFFSET	0x200000
-int domu_create(const struct shell *shell, size_t argc, char **argv)
+static int _domu_create(const uint32_t domid)
 {
 	/* TODO: pass mem, domid etc. as parameters */
 	int rc = 0;
-	uint32_t domid = 0;
 	struct xen_domctl_createdomain config;
 	struct vcpu_guest_context vcpu_ctx;
 	struct xen_domctl_scheduler_op sched_op;
@@ -465,16 +475,6 @@ int domu_create(const struct shell *shell, size_t argc, char **argv)
 	uint64_t dtb_addr = GUEST_RAM0_BASE;
 	uint64_t ventry;
 	struct xen_domain *domain;
-
-	if (argc < 3 || argc > 4) {
-		return -EINVAL;
-	}
-
-	domid = parse_domid(argc, argv);
-	if (!domid) {
-		printk("Invalid domid passed to create cmd\n");
-		return -EINVAL;
-	}
 
 	memset(&config, 0, sizeof(config));
 	prepare_domain_cfg(&domu_cfg, &config);
@@ -566,6 +566,21 @@ int domu_create(const struct shell *shell, size_t argc, char **argv)
 	return rc;
 }
 
+int domu_create(const struct shell *shell, size_t argc, char **argv)
+{
+	if (argc < 3 || argc > 4) {
+		return -EINVAL;
+	}
+
+	uint32_t domid = parse_domid(argc, argv);
+	if (!domid) {
+		printk("Invalid domid passed to create cmd\n");
+		return -EINVAL;
+	}
+
+	return _domu_create(domid);
+}
+
 int domu_destroy(const struct shell *shell, size_t argc, char **argv)
 {
 	int rc;
@@ -611,5 +626,6 @@ int domu_destroy(const struct shell *shell, size_t argc, char **argv)
 }
 
 void main(void) {
+	configure_led();
 	/* Nothing to do on app start */
 }
