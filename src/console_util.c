@@ -9,6 +9,9 @@
 #include <zephyr/kernel.h>
 #include <string.h>
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_DECLARE(dom0);
+
 static bool console_thrd_stop = false;
 K_KERNEL_STACK_DEFINE(read_thrd_stack, 8192);
 static struct k_thread read_thrd;
@@ -74,7 +77,7 @@ void evtchn_callback(void *priv)
 int start_domain_console(struct xen_domain *domain)
 {
 	if (read_tid) {
-		printk("Console thread is already running for another domain!\n");
+		LOG_ERR("Console thread is already running for another domain!\n");
 		return -EBUSY;
 	}
 
@@ -95,7 +98,7 @@ int stop_domain_console(void)
 	int rc;
 
 	if (!read_tid) {
-		printk("No console thread is running!\n");
+		LOG_ERR("No console thread is running!\n");
 		return -ESRCH;
 	}
 
